@@ -1,0 +1,7 @@
+{
+    "version": "3.8.0",
+    "id": "dongjia-game",
+    "name": "东家",
+    "engine": "cocos-creator",
+    "description": "东家 - 模拟经营游戏"
+}

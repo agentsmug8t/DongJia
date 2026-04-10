@@ -1,0 +1,20 @@
+[
+    {
+        "orderId": 1,
+        "name": "白菜豆腐汤",
+        "duration": 30,
+        "rewardCopper": 50
+    },
+    {
+        "orderId": 2,
+        "name": "红烧肉",
+        "duration": 60,
+        "rewardCopper": 150
+    },
+    {
+        "orderId": 3,
+        "name": "清蒸鲈鱼",
+        "duration": 120,
+        "rewardCopper": 300
+    }
+]

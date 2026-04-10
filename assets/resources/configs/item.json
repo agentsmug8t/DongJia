@@ -1,0 +1,74 @@
+[
+    {
+        "id": 1001,
+        "name": "白菜",
+        "type": 1,
+        "quality": 1,
+        "price": 10,
+        "icon": "textures/item/item_1001",
+        "desc": "最常见的食材，物美价廉"
+    },
+    {
+        "id": 1002,
+        "name": "猪肉",
+        "type": 1,
+        "quality": 2,
+        "price": 50,
+        "icon": "textures/item/item_1002",
+        "desc": "上好的五花肉，肥瘦相间"
+    },
+    {
+        "id": 1003,
+        "name": "鲈鱼",
+        "type": 1,
+        "quality": 3,
+        "price": 120,
+        "icon": "textures/item/item_1003",
+        "desc": "新鲜的江鲈，肉质鲜嫩"
+    },
+    {
+        "id": 2001,
+        "name": "花椒",
+        "type": 2,
+        "quality": 1,
+        "price": 30,
+        "icon": "textures/item/item_2001",
+        "desc": "川蜀花椒，麻香四溢"
+    },
+    {
+        "id": 2002,
+        "name": "八角",
+        "type": 2,
+        "quality": 2,
+        "price": 45,
+        "icon": "textures/item/item_2002",
+        "desc": "上等八角，卤味必备"
+    },
+    {
+        "id": 3001,
+        "name": "铁锅",
+        "type": 3,
+        "quality": 2,
+        "price": 200,
+        "icon": "textures/item/item_3001",
+        "desc": "厚实铁锅，经久耐用"
+    },
+    {
+        "id": 3002,
+        "name": "砂锅",
+        "type": 3,
+        "quality": 3,
+        "price": 350,
+        "icon": "textures/item/item_3002",
+        "desc": "紫砂慢炖锅，煲汤上品"
+    },
+    {
+        "id": 4001,
+        "name": "龙井茶",
+        "type": 4,
+        "quality": 4,
+        "price": 800,
+        "icon": "textures/item/item_4001",
+        "desc": "西湖龙井，名茶之首"
+    }
+]

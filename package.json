@@ -1,0 +1,21 @@
+{
+  "name": "dongjia-client",
+  "version": "1.0.0",
+  "description": "东家 - 模拟经营游戏客户端",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "ts-node assets/scripts/tests/RunTests.ts"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.7.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "ts-node": "^10.9.0"
+  },
+  "creator": {
+    "version": "3.8.8"
+  },
+  "uuid": "e7391155-730e-4e5a-b42e-4ec89c03e7a4"
+}

@@ -1,0 +1,32 @@
+{
+  "modules": {
+    "physics": {
+      "enabled": false
+    },
+    "ui": {
+      "enabled": true
+    },
+    "tween": {
+      "enabled": true
+    },
+    "audio": {
+      "enabled": true
+    },
+    "particle": {
+      "enabled": false
+    },
+    "spine": {
+      "enabled": false
+    },
+    "dragonBones": {
+      "enabled": false
+    },
+    "tiledMap": {
+      "enabled": false
+    },
+    "webSocket": {
+      "enabled": true
+    }
+  },
+  "__version__": "1.0.12"
+}

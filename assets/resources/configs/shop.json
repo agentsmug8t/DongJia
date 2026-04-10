@@ -1,0 +1,52 @@
+[
+    {
+        "id": 1,
+        "name": "路边小摊",
+        "level": 1,
+        "maxWorkers": 2,
+        "maxOrders": 3,
+        "upgradeCost": 500,
+        "unlockLevel": 1,
+        "desc": "简陋的路边摊位，万事开头难"
+    },
+    {
+        "id": 2,
+        "name": "街角食铺",
+        "level": 5,
+        "maxWorkers": 3,
+        "maxOrders": 5,
+        "upgradeCost": 2000,
+        "unlockLevel": 5,
+        "desc": "有了固定的铺面，生意渐有起色"
+    },
+    {
+        "id": 3,
+        "name": "临街酒楼",
+        "level": 10,
+        "maxWorkers": 5,
+        "maxOrders": 8,
+        "upgradeCost": 8000,
+        "unlockLevel": 10,
+        "desc": "两层酒楼，宾客盈门"
+    },
+    {
+        "id": 4,
+        "name": "望月大酒楼",
+        "level": 20,
+        "maxWorkers": 8,
+        "maxOrders": 12,
+        "upgradeCost": 30000,
+        "unlockLevel": 20,
+        "desc": "城中名楼，达官贵人常来光顾"
+    },
+    {
+        "id": 5,
+        "name": "天下第一楼",
+        "level": 50,
+        "maxWorkers": 10,
+        "maxOrders": 20,
+        "upgradeCost": 0,
+        "unlockLevel": 50,
+        "desc": "名震天下的传奇酒楼，无人不知无人不晓"
+    }
+]

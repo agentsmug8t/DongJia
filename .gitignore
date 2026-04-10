@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+server/node_modules/
+
+# Build output
+build/
+dist/
+temp/
+library/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Cocos Creator
+local/
+profiles/
+native/
+
+# Environment
+.env
+.env.local
+.history/

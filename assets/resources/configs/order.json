@@ -1,0 +1,57 @@
+[
+    {
+        "id": 101,
+        "name": "白菜豆腐汤",
+        "difficulty": 1,
+        "baseReward": { "copper": 50, "exp": 10 },
+        "time": 60,
+        "requiredLevel": 1,
+        "materials": [{ "itemId": 1001, "count": 2 }],
+        "desc": "清淡爽口的家常汤品"
+    },
+    {
+        "id": 102,
+        "name": "红烧肉",
+        "difficulty": 2,
+        "baseReward": { "copper": 150, "exp": 30 },
+        "time": 180,
+        "requiredLevel": 3,
+        "materials": [{ "itemId": 1002, "count": 3 }, { "itemId": 2002, "count": 1 }],
+        "desc": "肥而不腻的经典名菜"
+    },
+    {
+        "id": 103,
+        "name": "清蒸鲈鱼",
+        "difficulty": 3,
+        "baseReward": { "copper": 300, "exp": 60 },
+        "time": 300,
+        "requiredLevel": 5,
+        "materials": [{ "itemId": 1003, "count": 1 }],
+        "desc": "鲜嫩可口，考验火候"
+    },
+    {
+        "id": 104,
+        "name": "麻婆豆腐",
+        "difficulty": 2,
+        "baseReward": { "copper": 120, "exp": 25 },
+        "time": 120,
+        "requiredLevel": 2,
+        "materials": [{ "itemId": 1001, "count": 1 }, { "itemId": 2001, "count": 2 }],
+        "desc": "麻辣鲜香的川菜代表"
+    },
+    {
+        "id": 105,
+        "name": "佛跳墙",
+        "difficulty": 4,
+        "baseReward": { "copper": 1000, "exp": 200, "prestige": 10 },
+        "time": 600,
+        "requiredLevel": 10,
+        "materials": [
+            { "itemId": 1002, "count": 2 },
+            { "itemId": 1003, "count": 1 },
+            { "itemId": 2001, "count": 1 },
+            { "itemId": 2002, "count": 1 }
+        ],
+        "desc": "闽菜之王，荤素皆备，香飘十里"
+    }
+]
