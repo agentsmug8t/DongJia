@@ -2,6 +2,8 @@
 // 依赖：所有 Manager
 
 import { Logger, LogLevel } from 'db://assets/scripts/core/utils/Logger';
+import { director, Node, Layers, find } from 'cc';
+import { MainScene } from 'db://assets/scripts/startup/MainScene';
 import { EventManager } from 'db://assets/scripts/core/manager/EventManager';
 import { ResourceManager } from 'db://assets/scripts/core/manager/ResourceManager';
 import { ConfigManager } from 'db://assets/scripts/core/manager/ConfigManager';
@@ -14,7 +16,7 @@ import { AudioManager } from 'db://assets/scripts/core/manager/AudioManager';
 import { GameManager } from 'db://assets/scripts/core/manager/GameManager';
 import { UpdateManager } from 'db://assets/scripts/core/manager/UpdateManager';
 import { PlayerModel } from 'db://assets/scripts/modules/player/model/PlayerModel';
-import { SocketEvent, LoginRequest, LoginResponse } from 'db://assets/scripts/core/network/Protocol';
+import { SocketEvent, LoginRequest, LoginResponse, PlayerBaseInfo } from 'db://assets/scripts/core/network/Protocol';
 
 /** 启动步骤 */
 enum BootStep {
@@ -202,6 +204,25 @@ export class Bootstrap {
     private async _enterMain(): Promise<void> {
         // 启动游戏主循环
         GameManager.getInstance().startGame();
+
+        // 在场景的 Canvas 下挂载 MainScene 组件
+        const scene = director.getScene();
+        if (scene) {
+            // 尝试找已有 Canvas，找不到就创建
+            let canvasNode = scene.getChildByName('Canvas');
+            if (!canvasNode) {
+                // 备选：直接挂在场景根节点
+                canvasNode = scene;
+            }
+            const mainNode = new Node('MainSceneRoot');
+            mainNode.layer = Layers.Enum.UI_2D;
+            canvasNode.addChild(mainNode);
+            mainNode.addComponent(MainScene);
+            Logger.info('Bootstrap', '主界面 UI 已创建');
+        } else {
+            Logger.error('Bootstrap', '无法获取当前场景');
+        }
+
         Logger.info('Bootstrap', '进入主界面');
     }
 

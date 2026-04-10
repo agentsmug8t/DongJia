@@ -79,18 +79,6 @@ export enum TaskEvent {
 }
 
 /**
- * NPC 事件
- * 用于监听 NPC 交互和好感度变化
- */
-export enum NPCEvent {
-    DataUpdated = 'npc:data:updated',
-    FavorChanged = 'npc:favor:changed',
-    DialogStart = 'npc:dialog:start',
-    DialogEnd = 'npc:dialog:end',
-    RedDotChanged = 'npc:reddot:changed',
-}
-
-/**
  * 系统事件
  * 用于监听应用生命周期和全局系统状态
  */

@@ -58,6 +58,23 @@ export type SocketEventKey = keyof typeof SocketEvent;
 
 // ─── 请求类型 ─────────────────────────────────────────────────
 
+/** 通用奖励信息 */
+export interface RewardInfo {
+    copper?: number;
+    silver?: number;
+    exp?: number;
+    items?: { itemId: number; count: number }[];
+}
+
+/** 伙夫信息 */
+export interface WorkerInfo {
+    id: string;
+    name: string;
+    role: string;
+    level: number;
+    status: 'idle' | 'working' | 'offline';
+}
+
 export interface LoginRequest {
     token: string;
     platform: string;
@@ -69,6 +86,19 @@ export interface LoginResponse {
     nickname: string;
     level: number;
     serverTime: number;
+}
+
+/** 玩家基础信息（从服务器返回） */
+export interface PlayerBaseInfo {
+    id: string;
+    nickname: string;
+    level: number;
+    avatar: string;
+    copper: number;
+    silver: number;
+    prestige: number;
+    title: string;
+    exp: number;
 }
 
 /** 接单请求 */
@@ -90,7 +120,7 @@ export interface TakeOrderResponse {
 }
 
 /** 交付请求（无需参数，服务器通过 socket.data.playerId 识别） */
-export interface DeliverOrderRequest {}
+export interface DeliverOrderRequest { }
 
 /** 交付响应 */
 export interface DeliverOrderResponse {

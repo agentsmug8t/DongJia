@@ -1,199 +1,281 @@
 // 文件路径：assets/scripts/modules/shop/view/OrderCard.ts
 
-import { _decorator, Component, Node, Sprite, Label, Button, ProgressBar, tween, Vec3, UIOpacity } from 'cc';
+import {
+    _decorator, Component, Node, Label, UITransform, Color, Size, Vec3,
+    Graphics, Layers, HorizontalTextAlignment, VerticalTextAlignment, Overflow
+} from 'cc';
 import { Logger } from 'db://assets/scripts/core/utils/Logger';
 
-const { ccclass, property } = _decorator;
+const { ccclass } = _decorator;
 
-/**
- * 订单卡片预制体
- *
- * 节点层级：
- * OrderCard (Node)
- * ├── Background (Sprite)          — 卡片背景
- * ├── NameLabel (Label)            — 订单名称
- * ├── RequesterLabel (Label)       — 委托人
- * ├── DurationLabel (Label)        — 所需时间
- * ├── RewardContainer (Node)
- * │   ├── CopperIcon (Sprite)
- * │   └── CopperLabel (Label)      — 奖励铜钱
- * ├── ExtraRewardIcon (Sprite)     — 额外奖励图标
- * ├── TakeBtn (Button)             — 接单按钮
- * ├── ProgressBar (ProgressBar)    — 进度条，默认隐藏
- * └── DeliverBtn (Button)          — 交付按钮，默认隐藏
- */
+/** 订单状态 */
+export enum OrderState { IDLE, PRODUCING, READY, DISABLED }
+
+/** 订单卡片配置 */
+export interface OrderCardConfig {
+    orderId: number;
+    name: string;
+    stars: number;        // 1-5 难度
+    duration: number;     // 秒
+    rewardCopper: number;
+    desc?: string;
+}
+
 @ccclass('OrderCard')
 export class OrderCard extends Component {
 
-    // ─── UI 节点 ──────────────────────────────────────────────
+    private _config: OrderCardConfig | null = null;
+    private _state: OrderState = OrderState.IDLE;
+    private _startTime: number = 0;
 
-    @property(Sprite)
-    background: Sprite = null!;
+    // UI refs
+    private _nameLabel: Label | null = null;
+    private _infoLabel: Label | null = null;
+    private _starsLabel: Label | null = null;
+    private _btnLabel: Label | null = null;
+    private _btnGfx: Graphics | null = null;
+    private _progressGfx: Graphics | null = null;
+    private _progressLabel: Label | null = null;
+    private _statusLabel: Label | null = null;
+    private _btnNode: Node | null = null;
 
-    @property(Label)
-    nameLabel: Label = null!;
+    private _onTake: ((orderId: number) => void) | null = null;
+    private _onDeliver: ((orderId: number) => void) | null = null;
 
-    @property(Label)
-    requesterLabel: Label = null!;
+    private readonly CARD_W = 540;
+    private readonly CARD_H = 120;
 
-    @property(Label)
-    durationLabel: Label = null!;
+    // ─── 公开方法 ──────────────────────────────────────────────
 
-    @property(Node)
-    rewardContainer: Node = null!;
-
-    @property(Sprite)
-    copperIcon: Sprite = null!;
-
-    @property(Label)
-    copperLabel: Label = null!;
-
-    @property(Sprite)
-    extraRewardIcon: Sprite = null!;
-
-    @property(Button)
-    takeBtn: Button = null!;
-
-    @property(ProgressBar)
-    progressBar: ProgressBar = null!;
-
-    @property(Button)
-    deliverBtn: Button = null!;
-
-    // ─── 内部数据 ─────────────────────────────────────────────
-
-    private _orderId: number = 0;
-    private _onTakeCallback: ((orderId: number) => void) | null = null;
-    private _onDeliverCallback: ((orderId: number) => void) | null = null;
-
-    // ─── 生命周期 ─────────────────────────────────────────────
-
-    onLoad(): void {
-        // 默认隐藏进度条和交付按钮
-        if (this.progressBar) {
-            this.progressBar.node.active = false;
-        }
-        if (this.deliverBtn) {
-            this.deliverBtn.node.active = false;
-        }
-
-        // 绑定按钮事件
-        this.takeBtn?.node.on('click', this._onTakeClick, this);
-        this.deliverBtn?.node.on('click', this._onDeliverClick, this);
+    /** 初始化订单卡片 */
+    init(config: OrderCardConfig,
+         onTake: (orderId: number) => void,
+         onDeliver: (orderId: number) => void): void {
+        this._config = config;
+        this._onTake = onTake;
+        this._onDeliver = onDeliver;
+        this._buildUI();
+        this.setState(OrderState.IDLE);
     }
 
-    // ─── 外部调用 ─────────────────────────────────────────────
+    /** 设置状态 */
+    setState(state: OrderState): void {
+        this._state = state;
 
-    /**
-     * 初始化卡片数据
-     */
-    setup(data: {
-        orderId: number;
-        name: string;
-        requester?: string;
-        duration: number;
-        rewardCopper: number;
-        hasExtraReward?: boolean;
-        onTake?: (orderId: number) => void;
-        onDeliver?: (orderId: number) => void;
-    }): void {
-        this._orderId = data.orderId;
-        this._onTakeCallback = data.onTake ?? null;
-        this._onDeliverCallback = data.onDeliver ?? null;
-
-        if (this.nameLabel) this.nameLabel.string = data.name;
-        if (this.requesterLabel) this.requesterLabel.string = data.requester ?? '';
-
-        // 格式化耗时
-        const min = Math.floor(data.duration / 60);
-        const sec = data.duration % 60;
-        const timeStr = min > 0 ? `${min}分${sec > 0 ? sec + '秒' : ''}` : `${sec}秒`;
-        if (this.durationLabel) this.durationLabel.string = timeStr;
-
-        if (this.copperLabel) this.copperLabel.string = String(data.rewardCopper);
-        if (this.extraRewardIcon) this.extraRewardIcon.node.active = !!data.hasExtraReward;
-    }
-
-    /**
-     * 切换到"生产中"状态
-     */
-    setProducing(progress: number = 0): void {
-        if (this.takeBtn) this.takeBtn.node.active = false;
-        if (this.progressBar) {
-            this.progressBar.node.active = true;
-            this.progressBar.progress = progress;
-        }
-        if (this.deliverBtn) this.deliverBtn.node.active = false;
-    }
-
-    /**
-     * 切换到"可交付"状态
-     */
-    setDeliverable(): void {
-        if (this.takeBtn) this.takeBtn.node.active = false;
-        if (this.progressBar) this.progressBar.node.active = false;
-        if (this.deliverBtn) this.deliverBtn.node.active = true;
-    }
-
-    /**
-     * 重置到"可接单"状态
-     */
-    setIdle(): void {
-        if (this.takeBtn) this.takeBtn.node.active = true;
-        if (this.progressBar) this.progressBar.node.active = false;
-        if (this.deliverBtn) this.deliverBtn.node.active = false;
-    }
-
-    /**
-     * 设为禁用（其他订单正在进行中）
-     */
-    setDisabled(): void {
-        if (this.takeBtn) {
-            this.takeBtn.node.active = true;
-            this.takeBtn.interactable = false;
-        }
-        if (this.progressBar) this.progressBar.node.active = false;
-        if (this.deliverBtn) this.deliverBtn.node.active = false;
-    }
-
-    // ─── 按钮回调 ─────────────────────────────────────────────
-
-    private _onTakeClick(): void {
-        Logger.info('OrderCard', `接单: orderId=${this._orderId}`);
-        if (this._onTakeCallback) {
-            this._onTakeCallback(this._orderId);
+        switch (state) {
+            case OrderState.IDLE:
+                this._showIdle();
+                break;
+            case OrderState.PRODUCING:
+                this._startTime = Date.now() / 1000;
+                this._showProducing();
+                this.schedule(this._tickProgress, 1);
+                break;
+            case OrderState.READY:
+                this.unschedule(this._tickProgress);
+                this._showReady();
+                break;
+            case OrderState.DISABLED:
+                this.unschedule(this._tickProgress);
+                this._showDisabled();
+                break;
         }
     }
 
-    private _onDeliverClick(): void {
-        Logger.info('OrderCard', `交付: orderId=${this._orderId}`);
-        if (this._onDeliverCallback) {
-            this._onDeliverCallback(this._orderId);
+    onDestroy(): void {
+        this.unscheduleAllCallbacks();
+    }
+
+    // ─── UI 构建 ──────────────────────────────────────────────
+
+    private _buildUI(): void {
+        if (!this._config) return;
+        const c = this._config;
+
+        // 卡片背景
+        const bg = this._makeNode('CardBg', this.node);
+        bg.addComponent(UITransform).setContentSize(new Size(this.CARD_W, this.CARD_H));
+        const bgGfx = bg.addComponent(Graphics);
+        bgGfx.fillColor = new Color(40, 40, 70, 180);
+        bgGfx.roundRect(-this.CARD_W / 2, -this.CARD_H / 2, this.CARD_W, this.CARD_H, 10);
+        bgGfx.fill();
+
+        // 左侧难度指示条
+        const diffBar = this._makeNode('DiffBar', bg);
+        diffBar.setPosition(new Vec3(-this.CARD_W / 2 + 6, 0, 0));
+        diffBar.addComponent(UITransform).setContentSize(new Size(6, this.CARD_H - 16));
+        const dbGfx = diffBar.addComponent(Graphics);
+        const diffColor = c.stars <= 2 ? new Color(76, 175, 80) :
+                          c.stars <= 3 ? new Color(255, 193, 7) :
+                                         new Color(244, 67, 54);
+        dbGfx.fillColor = diffColor;
+        dbGfx.roundRect(-3, -(this.CARD_H - 16) / 2, 6, this.CARD_H - 16, 3);
+        dbGfx.fill();
+
+        // 菜名
+        this._nameLabel = this._makeLabel(bg, 'Name', c.name, 18,
+            new Color(255, 240, 200), new Vec3(-140, 30, 0));
+
+        // 星级
+        this._starsLabel = this._makeLabel(bg, 'Stars', '⭐'.repeat(c.stars), 12,
+            new Color(255, 200, 50), new Vec3(-140, 8, 0));
+
+        // 信息 (时长 + 奖励)
+        this._infoLabel = this._makeLabel(bg, 'Info',
+            `⏱${c.duration}s  💰${c.rewardCopper}铜钱`, 13,
+            new Color(150, 150, 170), new Vec3(-140, -14, 0));
+
+        // 进度条背景
+        const progBg = this._makeNode('ProgressBg', bg);
+        progBg.setPosition(new Vec3(-60, -40, 0));
+        progBg.addComponent(UITransform).setContentSize(new Size(280, 12));
+        const progBgGfx = progBg.addComponent(Graphics);
+        progBgGfx.fillColor = new Color(30, 30, 50);
+        progBgGfx.roundRect(-140, -6, 280, 12, 3);
+        progBgGfx.fill();
+
+        // 进度条填充
+        const progFill = this._makeNode('ProgressFill', bg);
+        progFill.setPosition(new Vec3(-60, -40, 0));
+        progFill.addComponent(UITransform).setContentSize(new Size(280, 12));
+        this._progressGfx = progFill.addComponent(Graphics);
+
+        // 进度文字
+        this._progressLabel = this._makeLabel(bg, 'ProgText', '', 11,
+            new Color(120, 120, 140), new Vec3(100, -40, 0));
+
+        // 状态文字
+        this._statusLabel = this._makeLabel(bg, 'Status', '', 12,
+            new Color(150, 150, 170), new Vec3(60, 30, 0));
+
+        // 操作按钮
+        this._btnNode = this._makeNode('ActionBtn', bg);
+        this._btnNode.setPosition(new Vec3(200, 0, 0));
+        this._btnNode.addComponent(UITransform).setContentSize(new Size(100, 40));
+        this._btnGfx = this._btnNode.addComponent(Graphics);
+        this._btnLabel = this._makeLabel(this._btnNode, 'BtnLbl', '接单', 15,
+            Color.WHITE, Vec3.ZERO);
+
+        this._btnNode.on(Node.EventType.TOUCH_END, this._onBtnClick, this);
+    }
+
+    // ─── 状态显示 ─────────────────────────────────────────────
+
+    private _showIdle(): void {
+        this._drawBtn(new Color(76, 175, 80), '接单');
+        if (this._statusLabel) this._statusLabel.string = '空闲';
+        this._drawProgress(0);
+        if (this._progressLabel) this._progressLabel.string = '';
+        if (this._btnNode) this._btnNode.active = true;
+    }
+
+    private _showProducing(): void {
+        this._drawBtn(new Color(100, 100, 120), '制作中');
+        if (this._statusLabel) {
+            this._statusLabel.string = '🔥 制作中';
+            this._statusLabel.color = new Color(255, 152, 0);
+        }
+        if (this._btnNode) this._btnNode.active = false;
+    }
+
+    private _showReady(): void {
+        this._drawBtn(new Color(33, 150, 243), '交付');
+        if (this._statusLabel) {
+            this._statusLabel.string = '✅ 可交付';
+            this._statusLabel.color = new Color(76, 175, 80);
+        }
+        this._drawProgress(1);
+        if (this._progressLabel) this._progressLabel.string = '完成！';
+        if (this._btnNode) this._btnNode.active = true;
+    }
+
+    private _showDisabled(): void {
+        this._drawBtn(new Color(60, 60, 80), '已完成');
+        if (this._statusLabel) {
+            this._statusLabel.string = '已完成';
+            this._statusLabel.color = new Color(100, 100, 120);
+        }
+        if (this._btnNode) this._btnNode.active = false;
+    }
+
+    // ─── 进度 ─────────────────────────────────────────────────
+
+    private _tickProgress(): void {
+        if (!this._config || this._state !== OrderState.PRODUCING) return;
+        const elapsed = Date.now() / 1000 - this._startTime;
+        const progress = Math.min(1, elapsed / this._config.duration);
+
+        this._drawProgress(progress);
+
+        const remaining = Math.max(0, this._config.duration - elapsed);
+        if (this._progressLabel) {
+            this._progressLabel.string = remaining > 0
+                ? `${Math.ceil(remaining)}s` : '完成！';
+        }
+
+        if (progress >= 1) {
+            this.setState(OrderState.READY);
         }
     }
 
-    // ─── 动画方法 ─────────────────────────────────────────────
-
-    /** 卡片飞入进行中区域 */
-    playTakeOrderAnim(): void {
-        tween(this.node)
-            .to(0.15, { scale: new Vec3(0.9, 0.9, 1) })
-            .to(0.25, { scale: new Vec3(1, 1, 1) }, { easing: 'backOut' })
-            .start();
+    private _drawProgress(progress: number): void {
+        if (!this._progressGfx) return;
+        this._progressGfx.clear();
+        const w = Math.floor(280 * progress);
+        if (w > 0) {
+            this._progressGfx.fillColor = progress >= 1
+                ? new Color(76, 175, 80) : new Color(255, 193, 7);
+            this._progressGfx.roundRect(-140, -6, w, 12, 3);
+            this._progressGfx.fill();
+        }
     }
 
-    /** 进度条填充 */
-    playProgressFill(percent: number): void {
-        if (!this.progressBar) return;
-        tween(this.progressBar).to(0.3, { progress: percent }).start();
+    // ─── 按钮 ─────────────────────────────────────────────────
+
+    private _drawBtn(color: Color, text: string): void {
+        if (this._btnGfx) {
+            this._btnGfx.clear();
+            this._btnGfx.fillColor = color;
+            this._btnGfx.roundRect(-50, -20, 100, 40, 6);
+            this._btnGfx.fill();
+        }
+        if (this._btnLabel) this._btnLabel.string = text;
     }
 
-    /** 交付成功铜钱雨 */
-    playCoinRain(): void {
-        // 卡片闪亮 + 弹跳
-        tween(this.node)
-            .to(0.1, { scale: new Vec3(1.1, 1.1, 1) })
-            .to(0.2, { scale: new Vec3(1, 1, 1) }, { easing: 'bounceOut' })
-            .start();
+    private _onBtnClick(): void {
+        if (!this._config) return;
+        if (this._state === OrderState.IDLE) {
+            Logger.info('OrderCard', `接单: ${this._config.name}`);
+            this._onTake?.(this._config.orderId);
+            this.setState(OrderState.PRODUCING);
+        } else if (this._state === OrderState.READY) {
+            Logger.info('OrderCard', `交付: ${this._config.name}`);
+            this._onDeliver?.(this._config.orderId);
+            this.setState(OrderState.DISABLED);
+        }
+    }
+
+    // ─── 工具 ─────────────────────────────────────────────────
+
+    private _makeNode(name: string, parent: Node): Node {
+        const n = new Node(name);
+        n.layer = Layers.Enum.UI_2D;
+        parent.addChild(n);
+        return n;
+    }
+
+    private _makeLabel(parent: Node, name: string, text: string,
+        fontSize: number, color: Color, pos: Vec3): Label {
+        const n = this._makeNode(name, parent);
+        n.setPosition(pos);
+        n.addComponent(UITransform).setContentSize(new Size(280, fontSize + 10));
+        const lbl = n.addComponent(Label);
+        lbl.string = text;
+        lbl.fontSize = fontSize;
+        lbl.color = color;
+        lbl.horizontalAlign = HorizontalTextAlignment.CENTER;
+        lbl.verticalAlign = VerticalTextAlignment.CENTER;
+        lbl.overflow = Overflow.CLAMP;
+        return lbl;
     }
 }

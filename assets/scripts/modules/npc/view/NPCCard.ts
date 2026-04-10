@@ -1,109 +1,181 @@
 // 文件路径：assets/scripts/modules/npc/view/NPCCard.ts
 
-import { _decorator, Component, Node, Sprite, Label, ProgressBar, tween, Vec3 } from 'cc';
+import {
+    _decorator, Component, Node, Label, UITransform, Color, Size, Vec3,
+    Graphics, Layers, HorizontalTextAlignment, VerticalTextAlignment, Overflow
+} from 'cc';
 import { Logger } from 'db://assets/scripts/core/utils/Logger';
 
-const { ccclass, property } = _decorator;
+const { ccclass } = _decorator;
 
-/**
- * NPC 卡片预制体
- *
- * 节点层级：
- * NPCCard (Node)
- * ├── AvatarFrame (Sprite)         — 头像边框
- * ├── Avatar (Sprite)              — NPC头像，占位：灰色圆形
- * ├── NameLabel (Label)
- * ├── FavorBar (ProgressBar)       — 好感度进度条
- * ├── RedDot (Node)                — 红点提示，默认隐藏
- * └── StatusIcon (Sprite)          — 状态图标（可接单/可闲聊）
- */
+/** NPC 数据 */
+export interface NPCData {
+    id: string;
+    name: string;
+    role: string;
+    level: number;
+    desc: string;
+    affection: number;    // 0-100
+    avatarColor: Color;
+    hasNewMsg: boolean;
+    dialogues: string[];
+}
+
 @ccclass('NPCCard')
 export class NPCCard extends Component {
 
-    // ─── UI 节点 ──────────────────────────────────────────────
+    private _data: NPCData | null = null;
+    private _nameLabel: Label | null = null;
+    private _roleLabel: Label | null = null;
+    private _affBar: Graphics | null = null;
+    private _affLabel: Label | null = null;
+    private _redDot: Node | null = null;
+    private _onClick: ((data: NPCData) => void) | null = null;
 
-    @property(Sprite)
-    avatarFrame: Sprite = null!;
+    /** 初始化 NPC 卡片 */
+    init(data: NPCData, onClick: (data: NPCData) => void): void {
+        this._data = data;
+        this._onClick = onClick;
+        this._buildUI();
+    }
 
-    @property(Sprite)
-    avatar: Sprite = null!;
+    /** 设置红点 */
+    setNewMsg(has: boolean): void {
+        if (this._data) this._data.hasNewMsg = has;
+        if (this._redDot) this._redDot.active = has;
+    }
 
-    @property(Label)
-    nameLabel: Label = null!;
+    /** 更新好感度 */
+    updateAffection(value: number): void {
+        if (this._data) this._data.affection = Math.min(100, value);
+        this._drawAffBar();
+    }
 
-    @property(ProgressBar)
-    favorBar: ProgressBar = null!;
+    private _buildUI(): void {
+        if (!this._data) return;
+        const d = this._data;
 
-    @property(Node)
-    redDot: Node = null!;
+        const W = 380, H = 140;
+        this.node.addComponent(UITransform).setContentSize(new Size(W, H));
 
-    @property(Sprite)
-    statusIcon: Sprite = null!;
+        // 背景
+        const bg = this._makeNode('Bg', this.node);
+        bg.addComponent(UITransform).setContentSize(new Size(W, H));
+        const bgGfx = bg.addComponent(Graphics);
+        bgGfx.fillColor = new Color(40, 40, 70, 180);
+        bgGfx.roundRect(-W / 2, -H / 2, W, H, 10);
+        bgGfx.fill();
+        bgGfx.strokeColor = new Color(80, 80, 120, 60);
+        bgGfx.lineWidth = 1;
+        bgGfx.roundRect(-W / 2, -H / 2, W, H, 10);
+        bgGfx.stroke();
 
-    // ─── 内部数据 ─────────────────────────────────────────────
+        // 头像
+        const av = this._makeNode('Avatar', this.node);
+        av.setPosition(new Vec3(-130, 10, 0));
+        av.addComponent(UITransform).setContentSize(new Size(60, 60));
+        const avGfx = av.addComponent(Graphics);
+        avGfx.fillColor = d.avatarColor;
+        avGfx.circle(0, 0, 26);
+        avGfx.fill();
+        this._makeLabel(av, 'AvText', d.name.charAt(0), 24, Color.WHITE, Vec3.ZERO);
 
-    private _npcId: string = '';
-    private _onClickCallback: ((npcId: string) => void) | null = null;
+        // 红点
+        this._redDot = this._makeNode('RedDot', av);
+        this._redDot.setPosition(new Vec3(20, 22, 0));
+        this._redDot.addComponent(UITransform).setContentSize(new Size(14, 14));
+        const rdGfx = this._redDot.addComponent(Graphics);
+        rdGfx.fillColor = new Color(244, 67, 54);
+        rdGfx.circle(0, 0, 6);
+        rdGfx.fill();
+        this._redDot.active = d.hasNewMsg;
 
-    // ─── 生命周期 ─────────────────────────────────────────────
+        // 名称
+        this._nameLabel = this._makeLabel(this.node, 'Name', d.name, 17,
+            new Color(255, 240, 200), new Vec3(20, 40, 0));
 
-    onLoad(): void {
-        if (this.redDot) {
-            this.redDot.active = false;
+        // 角色 + 等级
+        this._roleLabel = this._makeLabel(this.node, 'Role',
+            `${d.role} Lv.${d.level}`, 12,
+            new Color(150, 150, 170), new Vec3(20, 18, 0));
+
+        // 描述
+        this._makeLabel(this.node, 'Desc', d.desc, 11,
+            new Color(120, 120, 140), new Vec3(20, -4, 0));
+
+        // 好感度进度条
+        this._makeLabel(this.node, 'AffLbl', '❤ 好感', 11,
+            new Color(180, 100, 120), new Vec3(-40, -30, 0));
+
+        const barBg = this._makeNode('AffBarBg', this.node);
+        barBg.setPosition(new Vec3(60, -30, 0));
+        barBg.addComponent(UITransform).setContentSize(new Size(120, 10));
+        const bbGfx = barBg.addComponent(Graphics);
+        bbGfx.fillColor = new Color(30, 30, 50);
+        bbGfx.roundRect(-60, -5, 120, 10, 3);
+        bbGfx.fill();
+
+        const barFill = this._makeNode('AffBarFill', this.node);
+        barFill.setPosition(new Vec3(60, -30, 0));
+        barFill.addComponent(UITransform).setContentSize(new Size(120, 10));
+        this._affBar = barFill.addComponent(Graphics);
+        this._drawAffBar();
+
+        this._affLabel = this._makeLabel(this.node, 'AffVal',
+            `${d.affection}%`, 10,
+            new Color(150, 100, 120), new Vec3(140, -30, 0));
+
+        // 在线状态
+        const online = this._makeNode('Online', this.node);
+        online.setPosition(new Vec3(160, 40, 0));
+        online.addComponent(UITransform).setContentSize(new Size(10, 10));
+        const olGfx = online.addComponent(Graphics);
+        olGfx.fillColor = new Color(76, 175, 80);
+        olGfx.circle(0, 0, 4);
+        olGfx.fill();
+
+        // 点击事件
+        this.node.on(Node.EventType.TOUCH_END, () => {
+            if (this._data && this._onClick) {
+                Logger.info('NPCCard', `点击: ${this._data.name}`);
+                this._onClick(this._data);
+            }
+        }, this);
+    }
+
+    private _drawAffBar(): void {
+        if (!this._affBar || !this._data) return;
+        this._affBar.clear();
+        const w = Math.floor(120 * (this._data.affection / 100));
+        if (w > 0) {
+            this._affBar.fillColor = new Color(233, 30, 99);
+            this._affBar.roundRect(-60, -5, w, 10, 3);
+            this._affBar.fill();
         }
-
-        this.node.on(Node.EventType.TOUCH_END, this._onClick, this);
+        if (this._affLabel) this._affLabel.string = `${this._data.affection}%`;
     }
 
-    // ─── 外部调用 ─────────────────────────────────────────────
+    // ─── 工具 ─────────────────────────────────────────────────
 
-    /**
-     * 初始化卡片数据
-     */
-    setup(data: {
-        npcId: string;
-        name: string;
-        favorPercent: number;
-        hasRedDot?: boolean;
-        onClick?: (npcId: string) => void;
-    }): void {
-        this._npcId = data.npcId;
-        this._onClickCallback = data.onClick ?? null;
-
-        if (this.nameLabel) this.nameLabel.string = data.name;
-        if (this.favorBar) this.favorBar.progress = data.favorPercent;
-        if (this.redDot) this.redDot.active = !!data.hasRedDot;
+    private _makeNode(name: string, parent: Node): Node {
+        const n = new Node(name);
+        n.layer = Layers.Enum.UI_2D;
+        parent.addChild(n);
+        return n;
     }
 
-    /**
-     * 显示/隐藏红点
-     */
-    setRedDot(show: boolean): void {
-        if (this.redDot) this.redDot.active = show;
-        if (show) {
-            this.showRedDot();
-        }
-    }
-
-    // ─── 点击回调 ─────────────────────────────────────────────
-
-    private _onClick(): void {
-        Logger.info('NPCCard', `点击 NPC: ${this._npcId}`);
-        if (this._onClickCallback) {
-            this._onClickCallback(this._npcId);
-        }
-    }
-
-    // ─── 动画方法 ─────────────────────────────────────────────
-
-    /** 红点闪烁提示 */
-    showRedDot(): void {
-        if (!this.redDot || !this.redDot.active) return;
-        tween(this.redDot)
-            .to(0.5, { scale: new Vec3(1.3, 1.3, 1) })
-            .to(0.5, { scale: new Vec3(1, 1, 1) })
-            .union()
-            .repeatForever()
-            .start();
+    private _makeLabel(parent: Node, name: string, text: string,
+        fontSize: number, color: Color, pos: Vec3): Label {
+        const n = this._makeNode(name, parent);
+        n.setPosition(pos);
+        n.addComponent(UITransform).setContentSize(new Size(200, fontSize + 10));
+        const lbl = n.addComponent(Label);
+        lbl.string = text;
+        lbl.fontSize = fontSize;
+        lbl.color = color;
+        lbl.horizontalAlign = HorizontalTextAlignment.CENTER;
+        lbl.verticalAlign = VerticalTextAlignment.CENTER;
+        lbl.overflow = Overflow.CLAMP;
+        return lbl;
     }
 }
